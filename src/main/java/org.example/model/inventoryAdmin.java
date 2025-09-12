@@ -9,7 +9,7 @@ public class inventoryAdmin {
         while (true) {
             System.out.println();
             printMenu();
-            int n = 0;
+            int n = -1;
             try {
                 n = sc.nextInt();
             } catch (InputMismatchException e) {
@@ -23,7 +23,7 @@ public class inventoryAdmin {
                 case 3 -> reStock();
                 case 4 -> searchAvailability();
                 case 5 -> availableProducts();
-                case 6 ->{
+                case 6 -> {
                     System.out.println("Exiting......");
                     return;
                 }
@@ -70,7 +70,6 @@ public class inventoryAdmin {
             System.out.println("Enter the Id to be ReStocked ; ");
             int id = sc.nextInt();
             boolean found = false;
-            boolean added = false;
             for(product p : list) {
                 if (p.getId() == id){
                     found = true;
@@ -78,7 +77,6 @@ public class inventoryAdmin {
                     int newQuantity = sc.nextInt();
                     p.setQuantity(p.getQuantity() + newQuantity);
                     System.out.println("Product quantity updated.");
-                    added = true;
                     break;
                 }
             }
