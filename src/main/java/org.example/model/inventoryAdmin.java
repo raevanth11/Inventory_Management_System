@@ -4,12 +4,19 @@ import java.util.*;
 
 public class inventoryAdmin {
     private static Scanner sc = new Scanner(System.in);
-    public static List<product> list = new ArrayList<>();
+    private static List<product> list = new ArrayList<>();
     public static void main(String[] args) {
         while (true) {
             System.out.println();
             printMenu();
-            int n = sc.nextInt();
+            int n = 0;
+            try {
+                n = sc.nextInt();
+            } catch (InputMismatchException e) {
+                System.out.println("Invalid Input!!");
+                System.out.println("Please enter a valid input.");
+                return;
+            }
             switch (n) {
                 case 1 -> addProduct();
                 case 2 -> removeProduct();
@@ -62,19 +69,20 @@ public class inventoryAdmin {
         private static void reStock(){
             System.out.println("Enter the Id to be ReStocked ; ");
             int id = sc.nextInt();
-
-            System.out.println("Enter additional quantity : ");
-            int newQuantity = sc.nextInt();
+            boolean found = false;
             boolean added = false;
-            for(product p : list){
-                if(p.getId() == id){
+            for(product p : list) {
+                if (p.getId() == id){
+                    found = true;
+                    System.out.println("Enter additional quantity : ");
+                    int newQuantity = sc.nextInt();
                     p.setQuantity(p.getQuantity() + newQuantity);
                     System.out.println("Product quantity updated.");
                     added = true;
                     break;
                 }
             }
-            if(!added){
+            if(!found){
                 System.out.println("Product not found.");
             }
         }
@@ -97,6 +105,10 @@ public class inventoryAdmin {
             }
         }
         private static void availableProducts(){
+        if(list.isEmpty()){
+            System.out.println("There is no products on inventory.");
+            return;
+        }
             for(product k : list){
                 System.out.println(k);
             }
@@ -109,6 +121,7 @@ public class inventoryAdmin {
             System.out.println("3. ReStock.");
             System.out.println("4. Search Product Availability.");
             System.out.println("5. Show Available Products.");
+            System.out.println("6. To Exit.");
         }
     }
 
