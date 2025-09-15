@@ -1,10 +1,10 @@
 package org.example.service;
 import org.example.model.Product;
+import org.example.util.ProductDao;
 import java.util.*;
 
 public class InventoryAdmin {
     private static Scanner sc = new Scanner(System.in);
-    private static List<Product> list = new ArrayList<>();
     public static void main(String[] args) {
         while (true) {
             System.out.println();
@@ -32,7 +32,7 @@ public class InventoryAdmin {
             }
         }
     }
-        private static void addProduct(){
+    private static void addProduct(){
         System.out.print("Enter Id : ");
         int id ;
         try {
@@ -43,7 +43,8 @@ public class InventoryAdmin {
             sc.nextLine();
             return;
         }
-        for(Product p : list){
+        List<Product> products = ProductDao.getAllProducts();
+        for(Product p : products){
             if(p.getId() == id){
                 System.out.println("A product already exits with the entered ID.");
                 return;
@@ -76,7 +77,7 @@ public class InventoryAdmin {
             }
         }
         if(quantity <= 0){
-            System.out.println("Quantityt should be greater than 0.");
+            System.out.println("Quantity should be greater than 0.");
             return;
         }
         double price;
@@ -96,38 +97,31 @@ public class InventoryAdmin {
         }
         sc.nextLine();
         Product p = new Product(id, name, category, quantity, price);
-            list.add(p);
-            System.out.println("Product Added Successfully.");
+        System.out.println("Product Added Successfully.");
+        ProductDao.saveProduct(p);
+    }
+    private static void removeProduct() {
+        System.out.print("Enter the Id of the product to be removed: ");
+        int id;
+        try {
+            id = sc.nextInt();
+        } catch (InputMismatchException e) {
+            System.out.println("Invalid input. Please enter a valid number.");
+            sc.nextLine();
+            return;
         }
-        private static void removeProduct(){
-            System.out.print("Enter the Id of the product to be removed : ");
-            int id ;
-            try {
-                id = sc.nextInt();
-            }catch(InputMismatchException e){
-                System.out.println("Invalid input.");
-                System.out.println("Please enter a valid input.");
-                sc.nextLine();
-                return;
-            }
-            final int searchId = id;
-            boolean removed = false;
-            for(int i=0;i< list.size();i++){
-                if(list.get(i).getId() == id){
-                    list.remove(i);
-                    removed = true;
-                    break;
-                }
-            }
-            if(removed){
-                System.out.println("Product Removed Successfully.");
-            }
-            else {
-                System.out.println("Product not found.");
-            }
+
+        boolean removed = ProductDao.deleteProduct(id);
+
+        if (removed) {
+            System.out.println("Product Removed Successfully.");
+        } else {
+            System.out.println("Product not found in the database.");
         }
-        private static void reStock(){
-            System.out.print("Enter the Id to be ReStocked ; ");
+    }
+
+    private static void reStock(){
+            System.out.print("Enter the Id to be ReStocked : ");
             int id = -1;
             try {
                 id = sc.nextInt();
@@ -137,8 +131,9 @@ public class InventoryAdmin {
                 return;
             }
 
+            List<Product> products = ProductDao.getAllProducts();
             boolean found = false;
-            for(Product p : list) {
+            for(Product p : products) {
                 if (p.getId() == id){
                     found = true;
                     System.out.print("Enter additional quantity : ");
@@ -152,10 +147,11 @@ public class InventoryAdmin {
                         return;
                     }
                     if(newQuantity <= 0){
-                        System.out.println("Quanty should be greater then 0.");
+                        System.out.println("Quantity should be greater than 0.");
                         return;
                     }
-                    p.setQuantity(p.getQuantity() + newQuantity);
+                    int total = p.getQuantity() + newQuantity;
+                    ProductDao.updateQuantity(id, total);
                     System.out.println("Product quantity updated.");
                     break;
                 }
@@ -167,13 +163,15 @@ public class InventoryAdmin {
         private static void searchAvailability(){
             sc.nextLine();
             System.out.print("Enter name of the product to check availability : ");
-            String name = sc.nextLine();
+            String name = sc.nextLine().trim();
             if(name.trim().isEmpty()){
                 System.out.println("Product name cannot be empty.");
                 return;
             }
+
+            List<Product> products = ProductDao.getAllProducts();
             boolean found = false;
-            for(Product p : list){
+            for(Product p : products){
                 if(p.getName().equalsIgnoreCase(name)){
                     System.out.println("Match Found.....!!");
                     System.out.println("Available Quantity : "+p.getQuantity());
@@ -186,14 +184,15 @@ public class InventoryAdmin {
             }
         }
         private static void availableProducts(){
-            if(list.isEmpty()){
-                System.out.println("There is no products on inventory.");
+            List<Product> products = ProductDao.getAllProducts();
+            if(products.isEmpty()){
+                System.out.println("There are no products in inventory.");
                 return;
             }
-            System.out.println("Available products : ");
-            for(Product k : list){
-                System.out.println(k);
+            for(Product p : products){
+                System.out.println(p);
             }
+
         }
         private static void printMenu(){
             System.out.println("Inventory Management System......By Raevanth !!");
