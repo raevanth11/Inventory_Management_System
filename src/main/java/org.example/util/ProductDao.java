@@ -16,9 +16,9 @@ public class ProductDao {
             pstmt.setInt(3, product.getQuantity());
             pstmt.setDouble(4, product.getPrice());
             pstmt.executeUpdate();
-            System.out.println("✅ Product saved successfully!");
+            System.out.println("Product saved successfully!");
         } catch (SQLException e) {
-            System.out.println("❌ Failed to save product: " + e.getMessage());
+            System.out.println("Failed to save product: " + e.getMessage());
         }
     }
 
@@ -30,16 +30,16 @@ public class ProductDao {
             pstmt.setInt(2, productId);
             int rows = pstmt.executeUpdate();
             if (rows > 0) {
-                System.out.println("✅ Quantity updated successfully!");
+                System.out.println("Quantity updated successfully!");
             } else {
-                System.out.println("⚠️ Product not found with ID: " + productId);
+                System.out.println("Product not found with ID: " + productId);
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to update quantity: " + e.getMessage());
+            System.out.println("Failed to update quantity: " + e.getMessage());
         }
     }
 
-    public static void reduceQuantity(int productId, int amount) {
+    public static boolean reduceQuantity(int productId, int amount) {
         String sql = "UPDATE Products SET quantity = quantity - ? WHERE id = ? AND quantity >= ?";
         try (Connection conn = DBconnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -47,13 +47,10 @@ public class ProductDao {
             pstmt.setInt(2, productId);
             pstmt.setInt(3, amount);
             int rows = pstmt.executeUpdate();
-            if (rows > 0) {
-                System.out.println("✅ Quantity reduced successfully!");
-            } else {
-                System.out.println("⚠️ Not enough stock or product not found.");
-            }
+            return rows > 0;
         } catch (SQLException e) {
-            System.out.println("❌ Failed to reduce quantity: " + e.getMessage());
+            System.out.println("Failed to reduce quantity: " + e.getMessage());
+            return false;
         }
     }
 
@@ -65,7 +62,7 @@ public class ProductDao {
             int rows = pstmt.executeUpdate();
             return rows > 0; // true if product existed and was deleted
         } catch (SQLException e) {
-            System.out.println("❌ Failed to delete product: " + e.getMessage());
+            System.out.println("Failed to delete product: " + e.getMessage());
             return false;
         }
     }
@@ -87,7 +84,7 @@ public class ProductDao {
                 products.add(p);
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to fetch products: " + e.getMessage());
+            System.out.println("Failed to fetch products: " + e.getMessage());
         }
         return products;
     }

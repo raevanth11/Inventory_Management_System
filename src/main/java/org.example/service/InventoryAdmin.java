@@ -24,7 +24,8 @@ public class InventoryAdmin {
                 case 3 -> reStock();
                 case 4 -> searchAvailability();
                 case 5 -> availableProducts();
-                case 6 -> {
+                case 6 -> reduceStock();
+                case 7 -> {
                     System.out.println("Exiting......");
                     return;
                 }
@@ -72,7 +73,7 @@ public class InventoryAdmin {
                 quantity = sc.nextInt();
                 break;
             } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter a whole number.");
+                System.out.println("Invalid input. Please enter a valid quantity.");
                 sc.nextLine();
             }
         }
@@ -87,7 +88,7 @@ public class InventoryAdmin {
                 price = sc.nextDouble();
                 break;
             } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter a number (e.g., 99.99).");
+                System.out.println("Invalid input. Please enter a valid price.");
                 sc.nextLine();
             }
         }
@@ -160,6 +161,48 @@ public class InventoryAdmin {
                 System.out.println("Product not found.");
             }
         }
+    private static void reduceStock(){
+        System.out.print("Enter the Id to reduce quantity of product : ");
+        int id = -1;
+        try {
+            id = sc.nextInt();
+        }catch(InputMismatchException e){
+            System.out.println("Invalid input.");
+            System.out.println("Please enter a valid input.");
+            return;
+        }
+
+        List<Product> products = ProductDao.getAllProducts();
+        boolean found = false;
+        for(Product p : products) {
+            if (p.getId() == id){
+                found = true;
+                System.out.print("Enter the quantity to be reduced: ");
+                int redQuantity;
+                try{
+                    redQuantity = sc.nextInt();
+                }catch(InputMismatchException e){
+                    System.out.println("Invalid input.");
+                    System.out.println("Please enter a valid input.");
+                    sc.nextLine();
+                    return;
+                }
+                if(redQuantity <= 0){
+                    System.out.println("Quantity should be greater than 0.");
+                    return;
+                }
+                if (redQuantity > p.getQuantity()) {
+                    System.out.println("Not enough stock. Available: " + p.getQuantity());
+                    return;
+                }
+                ProductDao.reduceQuantity(id, redQuantity);
+                System.out.println("Product quantity updated.");
+            }
+        }
+        if(!found){
+            System.out.println("Product not found.");
+        }
+    }
         private static void searchAvailability(){
             sc.nextLine();
             System.out.print("Enter name of the product to check availability : ");
@@ -202,7 +245,8 @@ public class InventoryAdmin {
             System.out.println("3. ReStock.");
             System.out.println("4. Search Product Availability.");
             System.out.println("5. Show Available Products.");
-            System.out.println("6. To Exit.");
+            System.out.println("6. Reduce Quantity.");
+            System.out.println("7. To Exit.");
         }
     }
 
