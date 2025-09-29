@@ -23,9 +23,9 @@ public class ProductDAOImpl extends ProductDao {
 
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected > 0) {
-                System.out.println("✅ Product added to database successfully: " + product.getName());
+                System.out.println("Product added to database successfully: " + product.getName());
             } else {
-                System.out.println("⚠️ Failed to add product: " + product.getName());
+                System.out.println("Failed to add product: " + product.getName());
             }
         }
     }
@@ -48,7 +48,7 @@ public class ProductDAOImpl extends ProductDao {
                 );
                 Products.add(p);
             }
-            System.out.println("📦 Total products fetched: " + Products.size());
+            System.out.println("Total products fetched: " + Products.size());
         }
         return Products;
     }
@@ -63,7 +63,7 @@ public class ProductDAOImpl extends ProductDao {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                System.out.println("🔍 Product found with ID: " + id);
+                System.out.println("Product found with ID: " + id);
                 return new Product(
                         rs.getInt("id"),
                         rs.getString("name"),
@@ -72,7 +72,7 @@ public class ProductDAOImpl extends ProductDao {
                         rs.getDouble("price")
                 );
             } else {
-                System.out.println("❌ No product found with ID: " + id);
+                System.out.println("No product found with ID: " + id);
             }
         }
         return null;
@@ -115,10 +115,10 @@ public class ProductDAOImpl extends ProductDao {
 
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected > 0) {
-                System.out.println("✅ Product updated successfully: " + product.getName());
+                System.out.println("Product updated successfully: " + product.getName());
                 return true;
             } else {
-                System.out.println("⚠️ Failed to update product with ID: " + product.getId());
+                System.out.println("Failed to update product with ID: " + product.getId());
                 return false;
             }
         }
@@ -132,10 +132,10 @@ public class ProductDAOImpl extends ProductDao {
             stmt.setInt(1, id);
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected > 0) {
-                System.out.println("🗑️ Product deleted successfully with ID: " + id);
+                System.out.println("Product deleted successfully with ID: " + id);
                 return true;
             } else {
-                System.out.println("❌ No product found to delete with ID: " + id);
+                System.out.println("No product found to delete with ID: " + id);
                 return false;
             }
         }
@@ -162,9 +162,9 @@ public class ProductDAOImpl extends ProductDao {
             }
 
             if (!Products.isEmpty()) {
-                System.out.println("🔎 Found " + Products.size() + " products matching: " + name);
+                System.out.println("Found " + Products.size() + " products matching: " + name);
             } else {
-                System.out.println("❌ No products found with name like: " + name);
+                System.out.println("No products found with name like: " + name);
             }
         }
         return Products;
