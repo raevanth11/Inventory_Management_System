@@ -1,15 +1,18 @@
 package org.example.service;
+import org.example.dao.ProductDao;
 import org.example.exception.DuplicateProductIdException;
 import org.example.exception.InvalidQuantityException;
 import org.example.exception.ProductNotFoundException;
 import org.example.model.Product;
 import org.example.util.CSVHelper;
-import org.example.util.ProductDao;
+import org.example.dao.ProductDao;
+
+import java.sql.SQLException;
 import java.util.*;
 
 public class InventoryAdmin {
     private static Scanner sc = new Scanner(System.in);
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SQLException {
         while (true) {
             System.out.println();
             printMenu();
@@ -37,7 +40,7 @@ public class InventoryAdmin {
             }
         }
     }
-    private static void addProduct() {
+    private static void addProduct() throws SQLException {
         System.out.print("Enter Id : ");
         int id;
         try {
@@ -133,12 +136,12 @@ public class InventoryAdmin {
                 throw new ProductNotFoundException("Product with ID " + id + " not found in database.");
             }
             System.out.println("Product Removed Successfully.");
-        } catch (ProductNotFoundException e) {
+        } catch (ProductNotFoundException | SQLException e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private static void reStock(){
+    private static void reStock() throws SQLException {
             System.out.print("Enter the Id to be ReStocked : ");
             int id = -1;
             try {
@@ -177,7 +180,7 @@ public class InventoryAdmin {
                 System.out.println("Product not found.");
             }
         }
-    private static void reduceStock(){
+    private static void reduceStock() throws SQLException {
         System.out.print("Enter the Id to reduce quantity of product : ");
         int id = -1;
         try {
@@ -187,6 +190,7 @@ public class InventoryAdmin {
             System.out.println("Please enter a valid input.");
             return;
         }
+
         List<Product> products = ProductDao.getAllProducts();
         boolean found = false;
         for(Product p : products) {
@@ -218,7 +222,7 @@ public class InventoryAdmin {
             System.out.println("Product not found.");
         }
     }
-        private static void searchAvailability(){
+        private static void searchAvailability() throws SQLException {
             sc.nextLine();
             System.out.print("Enter name of the product to check availability : ");
             String name = sc.nextLine().trim();
@@ -240,7 +244,7 @@ public class InventoryAdmin {
                 System.out.println("Product not found.");
             }
         }
-        private static void availableProducts(){
+        private static void availableProducts() throws SQLException {
             List<Product> products = ProductDao.getAllProducts();
             if(products.isEmpty()){
                 System.out.println("There are no products in inventory.");
