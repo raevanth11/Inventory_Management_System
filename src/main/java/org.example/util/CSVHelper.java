@@ -6,19 +6,11 @@ import java.util.*;
 
 public class CSVHelper {
     private static final String FILE_NAME = "products.csv";
-
-
     public static void saveProducts(List<Product> products) throws IOException {
         try (PrintWriter writer = new PrintWriter(new FileWriter(FILE_NAME))) {
             writer.println("id,name,category,quantity,price");
             for (Product p : products) {
-                writer.println(
-                        p.getId() + "," +
-                                p.getName() + "," +
-                                p.getCategory() + "," +
-                                p.getQuantity() + "," +
-                                p.getPrice()
-                );
+                writer.println(p.getId() + "," + p.getName() + "," + p.getCategory() + "," + p.getQuantity() + "," + p.getPrice());
             }
         }
     }
@@ -35,7 +27,7 @@ public class CSVHelper {
             boolean firstLine = true;
 
             while ((line = br.readLine()) != null) {
-                if (firstLine) { // skip header row
+                if (firstLine) {
                     firstLine = false;
                     continue;
                 }
@@ -57,7 +49,6 @@ public class CSVHelper {
         System.out.printf("%-5s %-15s %-15s %-10s %-10s%n",
                 "ID", "Name", "Category", "Quantity", "Price");
         System.out.println("-----------------------------------------------------------");
-
         for (Product p : products) {
             System.out.printf("%-5d %-15s %-15s %-10d %-10.2f%n",
                     p.getId(), p.getName(), p.getCategory(), p.getQuantity(), p.getPrice());
