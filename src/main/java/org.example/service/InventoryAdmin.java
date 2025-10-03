@@ -1,18 +1,19 @@
 package org.example.service;
-import org.example.dao.ProductDao;
-import org.example.exception.DuplicateProductIdException;
+import org.example.dao.ProductDAOImpl;
 import org.example.exception.InvalidQuantityException;
 import org.example.exception.ProductNotFoundException;
 import org.example.model.Product;
 import org.example.util.CSVHelper;
-import org.example.dao.ProductDao;
-
 import java.sql.SQLException;
 import java.util.*;
 
+import static org.example.dao.ProductDAOImpl.LowStockProducts;
+
 public class InventoryAdmin {
     private static Scanner sc = new Scanner(System.in);
-    public static void main(String[] args) throws SQLException {
+    private static ProductDAOImpl dao = new ProductDAOImpl();
+
+    public static void main(String[] args) throws SQLException, ProductNotFoundException {
         while (true) {
             System.out.println();
             printMenu();
@@ -21,7 +22,6 @@ public class InventoryAdmin {
                 n = sc.nextInt();
             } catch (InputMismatchException e) {
                 System.out.println("Invalid Input.");
-                System.out.println("Please enter a valid input.");
                 sc.nextLine();
                 continue;
             }
@@ -32,7 +32,8 @@ public class InventoryAdmin {
                 case 4 -> searchAvailability();
                 case 5 -> availableProducts();
                 case 6 -> reduceStock();
-                case 7 -> {
+                case 7 -> getLowStockProducts();
+                case 8 -> {
                     System.out.println("Exiting......");
                     return;
                 }
@@ -40,6 +41,7 @@ public class InventoryAdmin {
             }
         }
     }
+
     private static void addProduct() throws SQLException {
         System.out.print("Enter Id : ");
         int id;
@@ -51,14 +53,10 @@ public class InventoryAdmin {
             return;
         }
 
-        List<Product> products = ProductDao.getAllProducts();
+        List<Product> products = dao.getAllProducts();
         for (Product p : products) {
             if (p.getId() == id) {
-                try {
-                    throw new DuplicateProductIdException("A product already exists with ID " + id);
-                } catch (DuplicateProductIdException e) {
-                    System.out.println(e.getMessage());
-                }
+                System.out.println("A product already exists with ID " + id);
                 return;
             }
         }
@@ -79,46 +77,33 @@ public class InventoryAdmin {
         }
 
         int quantity;
-        while (true) {
-            try {
-                System.out.print("Enter quantity of the product : ");
-                quantity = sc.nextInt();
-                if (quantity <= 0) {
-                    throw new InvalidQuantityException("Quantity must be greater than 0.");
-                }
-                break;
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter a valid quantity.");
-                sc.nextLine();
-            } catch (InvalidQuantityException e) {
-                System.out.println(e.getMessage());
-                return;
-            }
+        try {
+            System.out.print("Enter quantity of the product : ");
+            quantity = sc.nextInt();
+            if (quantity <= 0) throw new InvalidQuantityException("Quantity must be greater than 0.");
+        } catch (Exception e) {
+            System.out.println("Invalid quantity: " + e.getMessage());
+            sc.nextLine();
+            return;
         }
 
         double price;
-        while (true) {
-            try {
-                System.out.print("Enter price of the product : ");
-                price = sc.nextDouble();
-                if (price <= 0) {
-                    throw new InvalidQuantityException("Price must be greater than 0.");
-                }
-                break;
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter a valid price.");
-                sc.nextLine();
-            } catch (InvalidQuantityException e) {
-                System.out.println(e.getMessage());
-                return;
-            }
+        try {
+            System.out.print("Enter price of the product : ");
+            price = sc.nextDouble();
+            if (price <= 0) throw new InvalidQuantityException("Price must be greater than 0.");
+        } catch (Exception e) {
+            System.out.println("Invalid price: " + e.getMessage());
+            sc.nextLine();
+            return;
         }
 
         sc.nextLine();
         Product p = new Product(id, name, category, quantity, price);
-        ProductDao.saveProduct(p);
+        dao.addProduct(p);
         System.out.println("Product Added Successfully.");
     }
+
     private static void removeProduct() {
         System.out.print("Enter the Id of the product to be removed: ");
         int id;
@@ -129,139 +114,153 @@ public class InventoryAdmin {
             sc.nextLine();
             return;
         }
-
         try {
-            boolean removed = ProductDao.deleteProduct(id);
-            if (!removed) {
-                throw new ProductNotFoundException("Product with ID " + id + " not found in database.");
-            }
+            boolean removed = dao.deleteProduct(id);
+            if (!removed) throw new ProductNotFoundException("Product with ID " + id + " not found.");
             System.out.println("Product Removed Successfully.");
-        } catch (ProductNotFoundException | SQLException e) {
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
     private static void reStock() throws SQLException {
-            System.out.print("Enter the Id to be ReStocked : ");
-            int id = -1;
-            try {
-                id = sc.nextInt();
-            }catch(InputMismatchException e){
-                System.out.println("Invalid input.");
-                System.out.println("Please enter a valid input.");
-                return;
-            }
-            List<Product> products = ProductDao.getAllProducts();
-            boolean found = false;
-            for(Product p : products) {
-                if (p.getId() == id){
-                    found = true;
-                    System.out.print("Enter additional quantity : ");
-                    int newQuantity;
-                    try{
-                        newQuantity = sc.nextInt();
-                    }catch(InputMismatchException e){
-                        System.out.println("Invalid input.");
-                        System.out.println("Please enter a valid input.");
-                        sc.nextLine();
-                        return;
-                    }
-                    if(newQuantity <= 0){
-                        System.out.println("Quantity should be greater than 0.");
-                        return;
-                    }
-                    int total = p.getQuantity() + newQuantity;
-                    ProductDao.updateProductQuantity(id, total);
-                    System.out.println("Product quantity updated.");
-                    break;
-                }
-            }
-            if(!found){
-                System.out.println("Product not found.");
-            }
-        }
-    private static void reduceStock() throws SQLException {
-        System.out.print("Enter the Id to reduce quantity of product : ");
-        int id = -1;
+        System.out.print("Enter the Id to be ReStocked : ");
+        int id;
         try {
             id = sc.nextInt();
-        }catch(InputMismatchException e){
+        } catch (InputMismatchException e) {
             System.out.println("Invalid input.");
-            System.out.println("Please enter a valid input.");
+            sc.nextLine();
             return;
         }
 
-        List<Product> products = ProductDao.getAllProducts();
-        boolean found = false;
-        for(Product p : products) {
-            if (p.getId() == id){
-                found = true;
-                System.out.print("Enter the quantity to be reduced: ");
-                int redQuantity;
-                try{
-                    redQuantity = sc.nextInt();
-                }catch(InputMismatchException e){
-                    System.out.println("Invalid input.");
-                    System.out.println("Please enter a valid input.");
-                    sc.nextLine();
-                    return;
-                }
-                if(redQuantity <= 0){
-                    System.out.println("Quantity should be greater than 0.");
-                    return;
-                }
-                if (redQuantity > p.getQuantity()) {
-                    System.out.println("Not enough stock. Available: " + p.getQuantity());
-                    return;
-                }
-                ProductDao.reduceProductQuantity(id, redQuantity);
-                System.out.println("Product quantity updated.");
-            }
-        }
-        if(!found){
+        Product existing = dao.getProductById(id);
+        if (existing == null) {
             System.out.println("Product not found.");
+            return;
         }
-    }
-        private static void searchAvailability() throws SQLException {
+
+        System.out.print("Enter additional quantity : ");
+        int newQuantity;
+        try {
+            newQuantity = sc.nextInt();
+        } catch (InputMismatchException e) {
+            System.out.println("Invalid input.");
             sc.nextLine();
-            System.out.print("Enter name of the product to check availability : ");
-            String name = sc.nextLine().trim();
-            if(name.trim().isEmpty()){
-                System.out.println("Product name cannot be empty.");
-                return;
-            }
-            List<Product> products = ProductDao.getAllProducts();
-            boolean found = false;
-            for(Product p : products){
-                if(p.getName().equalsIgnoreCase(name)){
-                    System.out.println("Match Found.....!!");
-                    System.out.println("Available Quantity : "+p.getQuantity());
-                    found = true;
-                    break;
-                }
-            }
-            if(!found){
-                System.out.println("Product not found.");
-            }
+            return;
         }
-        private static void availableProducts() throws SQLException {
-            List<Product> products = ProductDao.getAllProducts();
-            if(products.isEmpty()){
-                System.out.println("There are no products in inventory.");
-                return;
-            }
-            CSVHelper.printProductsTable(products);
+        if (newQuantity <= 0) {
+            System.out.println("Quantity should be greater than 0.");
+            return;
         }
-        private static void printMenu(){
-            System.out.println("Inventory Management System......By Raevanth !!");
-            System.out.println("Select Operations :");
-            System.out.println("1. Add Product.");
-            System.out.println("2. Remove Product.");
-            System.out.println("3. ReStock.");
-            System.out.println("4. Search Product Availability.");
-            System.out.println("5. Show Available Products.");
-            System.out.println("6. Reduce Quantity.");
-            System.out.println("7. To Exit.");
+
+        existing.setQuantity(existing.getQuantity() + newQuantity);
+        int exQuantity = existing.getQuantity();
+        dao.updateProduct(exQuantity, newQuantity);
+        System.out.println("Product quantity updated.");
+    }
+
+    private static void reduceStock() throws SQLException {
+        System.out.print("Enter the Id to reduce quantity of product : ");
+        int id;
+        try {
+            id = sc.nextInt();
+        } catch (InputMismatchException e) {
+            System.out.println("Invalid input.");
+            sc.nextLine();
+            return;
+        }
+
+        Product existing = dao.getProductById(id);
+        if (existing == null) {
+            System.out.println("Product not found.");
+            return;
+        }
+
+        System.out.print("Enter the quantity to be reduced: ");
+        int redQuantity;
+        try {
+            redQuantity = sc.nextInt();
+        } catch (InputMismatchException e) {
+            System.out.println("Invalid input.");
+            sc.nextLine();
+            return;
+        }
+        dao.reduceProduct(id, redQuantity);
+        if (redQuantity <= 0) {
+            System.out.println("Quantity should be greater than 0.");
+            return;
+        }
+        if (redQuantity > existing.getQuantity()) {
+            System.out.println("Not enough stock. Available: " + existing.getQuantity());
+            return;
+        }
+
+        existing.setQuantity(existing.getQuantity() - redQuantity);
+        int exQuantity = existing.getQuantity();
+        dao.updateProduct(exQuantity, redQuantity);
+        System.out.println("Product quantity reduced.");
+    }
+
+    private static void searchAvailability() throws SQLException, ProductNotFoundException {
+        sc.nextLine();
+        System.out.print("Enter name of the product to check availability : ");
+        String name = sc.nextLine().trim();
+        if (name.isEmpty()) {
+            System.out.println("Product name cannot be empty.");
+            return;
+        }
+
+        List<Product> products = Collections.singletonList(dao.searchByName(name));
+        if (products.isEmpty()) {
+            System.out.println("Product not found.");
+        } else {
+            products.forEach(p -> {
+                System.out.println("Match Found.....!!");
+                System.out.println("Available Quantity : " + p.getQuantity());
+            });
         }
     }
 
+    private static void availableProducts() throws SQLException {
+        List<Product> products = dao.getAllProducts();
+        if (products.isEmpty()) {
+            System.out.println("There are no products in inventory.");
+            return;
+        }
+        CSVHelper.printProductsTable(products);
+    }
+    public static void getLowStockProducts() throws SQLException, ProductNotFoundException {
+        int minValue;
+        try {
+            System.out.print("Enter minimum stock threshold: ");
+            minValue = sc.nextInt();
+        } catch (InputMismatchException e) {
+            System.out.println("Invalid input.");
+            sc.nextLine();
+            return;
+        }
+        List<Product> lowStockProducts = LowStockProducts(minValue);
+        if (lowStockProducts.isEmpty()) {
+            System.out.println("No products are low on stock.");
+        } else {
+            System.out.println("Low Stock Products:");
+            for (Product p : lowStockProducts) {
+                System.out.println(p);
+            }
+        }
+    }
+
+    private static void printMenu() {
+        System.out.println("Inventory Management System......By Raevanth !!");
+        System.out.println("Select Operations :");
+        System.out.println("1. Add Product.");
+        System.out.println("2. Remove Product.");
+        System.out.println("3. ReStock.");
+        System.out.println("4. Search Product Availability.");
+        System.out.println("5. Show Available Products.");
+        System.out.println("6. Reduce Quantity.");
+        System.out.println("7. Get Lowest Stock Product.");
+        System.out.println("8. To Exit.");
+    }
+}
