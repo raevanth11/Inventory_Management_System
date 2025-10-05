@@ -100,8 +100,14 @@ public class InventoryAdmin {
 
         sc.nextLine();
         Product p = new Product(id, name, category, quantity, price);
-        ProductDAOImpl.addProduct(p);
-        System.out.println("Product Added Successfully.");
+        try {
+            boolean added = ProductDAOImpl.addProduct(p);
+            if (added) {
+                System.out.println("✅ Product saved successfully!");
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ " + e.getMessage());
+        }
     }
 
     private static void removeProduct() {
@@ -119,7 +125,6 @@ public class InventoryAdmin {
         try {
             boolean removed = ProductDAOImpl.deleteProduct(id);
             if (!removed) throw new ProductNotFoundException("Product with ID " + id + " not found.");
-            System.out.println("Product Removed Successfully.");
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -159,7 +164,6 @@ public class InventoryAdmin {
         int updatedQuantity = existing.getQuantity() + newQuantity;
         existing.setQuantity(updatedQuantity);
         ProductDAOImpl.updateProduct(id, updatedQuantity);
-        System.out.println("Product quantity updated.");
     }
 
     private static void reduceQuantity() throws SQLException {
@@ -197,7 +201,6 @@ public class InventoryAdmin {
             return;
         }
         ProductDAOImpl.reduceProduct(id, redQuantity);
-        System.out.println("Product quantity reduced.");
     }
 
     private static void searchProductAvailability() throws SQLException {

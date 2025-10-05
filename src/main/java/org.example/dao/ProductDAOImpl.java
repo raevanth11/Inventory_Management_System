@@ -9,26 +9,23 @@ import java.util.List;
 
 public class ProductDAOImpl extends ProductDao {
 
-    public static void addProduct(Product product) throws SQLException {
+    public static boolean addProduct(Product product) throws SQLException {
         String sql = "INSERT INTO products (id, name, category, quantity, price) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBconnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-             stmt.setInt(1, product.getId());
-             stmt.setString(2, product.getName());
-             stmt.setString(3, product.getCategory());
-             stmt.setInt(4, product.getQuantity());
-             stmt.setDouble(5, product.getPrice());
+            stmt.setInt(1, product.getId());
+            stmt.setString(2, product.getName());
+            stmt.setString(3, product.getCategory());
+            stmt.setInt(4, product.getQuantity());
+            stmt.setDouble(5, product.getPrice());
 
-             int rows = stmt.executeUpdate();
-             if (rows > 0) {
-                 System.out.println("✅ Product saved successfully in DB!");
-             } else {
-                System.out.println("⚠️ Failed to save product: " + product.getName());
-             }
-        }catch(SQLIntegrityConstraintViolationException e) {
-             System.out.println("❌ Product with ID " + product.getId() + " already exists.");
+            int rows = stmt.executeUpdate();
+            return rows > 0;
+        } catch (SQLIntegrityConstraintViolationException e) {
+            throw new SQLException("Product with ID " + product.getId() + " already exists.", e);
         }
     }
+
 
     public static void reduceProduct(int id, int reduceBy) throws SQLException {
         String selectSql = "SELECT quantity FROM products WHERE id = ?";
