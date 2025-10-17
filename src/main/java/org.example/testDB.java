@@ -1,13 +1,13 @@
-package com.inventory;
+package org.example;
 
-import org.example.util.DBconnection;
+import org.example.util.DBConnection;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 public class testDB {
     public static void main(String[] args) {
-        try (Connection conn = DBconnection.getConnection()) {
+        try (Connection conn = DBConnection.getConnection()) {
             String query = "Select * from products";
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(query);

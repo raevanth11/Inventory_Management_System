@@ -1,311 +1,323 @@
 package org.example.service;
+
 import org.example.dao.ProductDAOImpl;
-import org.example.exception.*;
+import org.example.dao.UserDAOImpl;
+import org.example.exception.InvalidQuantityException;
+import org.example.exception.ProductNotFoundException;
 import org.example.model.Product;
+import org.example.model.User;
 import org.example.util.CSVHelper;
+
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
-import static org.example.dao.ProductDAOImpl.LowStockProducts;
 
 public class InventoryAdmin {
     private static final Scanner sc = new Scanner(System.in);
     private static final ProductDAOImpl dao = new ProductDAOImpl();
+    private static final UserDAOImpl userDao;
 
-    public static void main(String[] args) throws SQLException {
-        while (true) {
-            System.out.println();
-            printMenu();
-            int n;
-            try {
-                n = sc.nextInt();
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid Input.");
-                sc.nextLine();
-                continue;
-            }
-            switch (n) {
-                case 1 -> addProduct();
-                case 2 -> removeProduct();
-                case 3 -> addQuantity();
-                case 4 -> reduceQuantity();
-                case 5 -> allAvailableProducts();
-                case 6 -> getLowestStockProducts();
-                case 7 -> searchProductAvailability();
-                case 8 -> searchProductsWithinPriceRange();
-                case 9 -> {
-                    System.out.println("Exiting......");
+    static {
+        try {
+            userDao = new UserDAOImpl();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // ===== PRODUCT METHODS =====
+
+    public void addProduct() {
+        try {
+            System.out.print("🆔 Enter ID: ");
+            int id = Integer.parseInt(sc.nextLine());
+
+            List<Product> products = dao.getAllProducts();
+            for (Product p : products) {
+                if (p.getId() == id) {
+                    System.out.println("⚠️ Product with ID " + id + " already exists.");
                     return;
                 }
-                default -> System.out.println("Invalid Choice.");
             }
-        }
-    }
 
-    private static void addProduct() throws SQLException {
-        System.out.print("Enter Id : ");
-
-        int id;
-        try {
-            id = sc.nextInt();
-        } catch (InputMismatchException e) {
-            System.out.println("Invalid input. Please enter a valid number.");
-            sc.nextLine();
-            return;
-        }
-
-        List<Product> products = ProductDAOImpl.getAllProducts();
-        for (Product p : products) {
-            if (p.getId() == id) {
-                System.out.println("A product already exists with ID " + id);
+            System.out.print("📦 Enter Name: ");
+            String name = sc.nextLine();
+            if (name.trim().isEmpty()) {
+                System.out.println("❌ Name cannot be empty.");
                 return;
             }
-        }
 
-        sc.nextLine();
-        System.out.print("Enter name of the product : ");
-        String name = sc.nextLine();
-        if (name.trim().isEmpty()) {
-            System.out.println("Name cannot be empty.");
-            return;
-        }
-
-        System.out.print("Enter category of the product : ");
-        String category = sc.nextLine();
-        if (category.trim().isEmpty()) {
-            System.out.println("Category cannot be empty.");
-            return;
-        }
-
-        int quantity;
-        try {
-            System.out.print("Enter quantity of the product : ");
-            quantity = sc.nextInt();
-            if (quantity <= 0) throw new InvalidQuantityException("Quantity must be greater than 0.");
-        } catch (Exception e) {
-            System.out.println("Invalid quantity: " + e.getMessage());
-            sc.nextLine();
-            return;
-        }
-
-        double price;
-        try {
-            System.out.print("Enter price of the product : ");
-            price = sc.nextDouble();
-            if (price <= 0) throw new InvalidQuantityException("Price must be greater than 0.");
-        } catch (Exception e) {
-            System.out.println("Invalid price: " + e.getMessage());
-            sc.nextLine();
-            return;
-        }
-
-        sc.nextLine();
-        Product p = new Product(id, name, category, quantity, price);
-        try {
-            boolean added = ProductDAOImpl.addProduct(p);
-            if (added) {
-                System.out.println("✅ Product saved successfully!");
+            System.out.print("🏷️ Enter Category: ");
+            String category = sc.nextLine();
+            if (category.trim().isEmpty()) {
+                System.out.println("❌ Category cannot be empty.");
+                return;
             }
-        } catch (SQLException e) {
+
+            System.out.print("🔢 Enter Quantity: ");
+            int qty = Integer.parseInt(sc.nextLine());
+            if (qty < 0) throw new InvalidQuantityException("❌ Quantity cannot be negative");
+
+            System.out.print("💰 Enter Price: ");
+            double price = Double.parseDouble(sc.nextLine());
+            if (price < 0) throw new InvalidQuantityException("❌ Price cannot be negative");
+
+            Product p = new Product(id, name, category, qty, price);
+            dao.addProduct(p);
+            System.out.println("✅ Product added successfully!");
+
+        } catch (NumberFormatException e) {
+            System.out.println("⚠️ Invalid input! Please enter numbers for ID, Quantity, and Price.");
+        } catch (InvalidQuantityException e) {
             System.out.println("❌ " + e.getMessage());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private static void removeProduct() {
-        System.out.print("Enter the Id of the product to be removed: ");
-
-        int id;
+    public void removeProduct() {
         try {
-            id = sc.nextInt();
-        } catch (InputMismatchException e) {
-            System.out.println("Invalid input. Please enter a valid number.");
-            sc.nextLine();
-            return;
-        }
+            System.out.print("🗑️ Enter ID to remove: ");
+            int id = Integer.parseInt(sc.nextLine());
 
-        try {
-            boolean removed = ProductDAOImpl.deleteProduct(id);
-            if (!removed) throw new ProductNotFoundException("Product with ID " + id + " not found.");
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+            boolean deleted = dao.deleteProduct(id);
+            if (!deleted) throw new ProductNotFoundException("❌ Product with ID " + id + " not found.");
+            System.out.println("🧹 Product deleted successfully!");
+
+        } catch (NumberFormatException e) {
+            System.out.println("⚠️ Invalid input! Please enter a number.");
+        } catch (ProductNotFoundException e) {
+            System.out.println("❌ " + e.getMessage());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private static void addQuantity() throws SQLException {
-        int id;
+    public void updateProduct() {
         try {
-            System.out.print("Enter the Id to be ReStocked : ");
-            id = sc.nextInt();
-        } catch (InputMismatchException e) {
-            System.out.println("Invalid input.");
-            sc.nextLine();
-            return;
-        }
+            System.out.print("✏️ Enter ID to update: ");
+            int id = Integer.parseInt(sc.nextLine());
 
-        Product existing = ProductDAOImpl.getProductById(id);
-        if (existing == null) {
-            System.out.println("Product not found.");
-            return;
-        }
+            Product existing = dao.getProductById(id);
+            if (existing == null) throw new ProductNotFoundException("❌ Product with ID " + id + " not found.");
 
-        int newQuantity;
-        try {
-            System.out.print("Enter additional quantity : ");
-            newQuantity = sc.nextInt();
-        } catch (InputMismatchException e) {
-            System.out.println("Invalid input.");
-            sc.nextLine();
-            return;
-        }
-        if (newQuantity <= 0) {
-            System.out.println("Quantity should be greater than 0.");
-            return;
-        }
+            System.out.print("🆕 Enter new Name: ");
+            String name = sc.nextLine();
+            System.out.print("🆕 Enter new Category: ");
+            String category = sc.nextLine();
+            System.out.print("🆕 Enter new Quantity: ");
+            int qty = Integer.parseInt(sc.nextLine());
+            if (qty < 0) throw new InvalidQuantityException("❌ Quantity cannot be negative");
 
-        int updatedQuantity = existing.getQuantity() + newQuantity;
-        existing.setQuantity(updatedQuantity);
-        ProductDAOImpl.updateProduct(id, updatedQuantity);
+            System.out.print("🆕 Enter new Price: ");
+            double price = Double.parseDouble(sc.nextLine());
+            if (price < 0) throw new InvalidQuantityException("❌ Price cannot be negative");
+
+            existing.setName(name);
+            existing.setCategory(category);
+            existing.setQuantity(qty);
+            existing.setPrice(price);
+
+            boolean updated = dao.updateProduct(existing);
+            if (updated) {
+                System.out.println("✅ Product updated successfully!");
+            } else {
+                System.out.println("⚠️ Update failed.");
+            }
+
+        } catch (NumberFormatException e) {
+            System.out.println("⚠️ Invalid input! Please enter numbers for ID, Quantity, and Price.");
+        } catch (ProductNotFoundException | InvalidQuantityException e) {
+            System.out.println("❌ " + e.getMessage());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    private static void reduceQuantity() throws SQLException {
-        int id;
+    public void searchProduct() {
         try {
-            System.out.print("Enter the Id to reduce quantity of product : ");
-            id = sc.nextInt();
-        } catch (InputMismatchException e) {
-            System.out.println("Invalid input.");
-            sc.nextLine();
-            return;
-        }
+            System.out.println("\n🔍 === Search Product ===");
+            System.out.println("1️⃣ Search by ID");
+            System.out.println("2️⃣ Search by Name");
+            System.out.println("3️⃣ Search by Category");
+            System.out.print("➡️ Enter your choice: ");
+            int choice = Integer.parseInt(sc.nextLine());
 
-        Product existing = ProductDAOImpl.getProductById(id);
-        if (existing == null) {
-            System.out.println("Product not found.");
-            return;
-        }
+            switch (choice) {
+                case 1 -> {
+                    System.out.print("🔢 Enter ID to search: ");
+                    int id = Integer.parseInt(sc.nextLine());
+                    Product p = dao.getProductById(id);
+                    if (p != null) p.display();
+                    else System.out.println("⚠️ Product not found!");
+                }
+                case 2 -> {
+                    System.out.print("📦 Enter product name to search: ");
+                    String name = sc.nextLine();
+                    List<Product> nameResults = Collections.singletonList(dao.searchByName(name));
+                    nameResults.forEach(Product::display);
+                }
+                case 3 -> {
+                    System.out.print("🏷️ Enter category to search: ");
+                    String category = sc.nextLine();
+                    List<Product> categoryResults = dao.searchByCategory(category);
+                    categoryResults.forEach(Product::display);
+                }
+                default -> System.out.println("❌ Invalid choice! Please select 1, 2, or 3.");
+            }
 
-        int redQuantity;
-        try {
-            System.out.print("Enter the quantity to be reduced: ");
-            redQuantity = sc.nextInt();
-        } catch (InputMismatchException e) {
-            System.out.println("Invalid input.");
-            sc.nextLine();
-            return;
+        } catch (NumberFormatException e) {
+            System.out.println("⚠️ Invalid input! Please enter a number.");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        if (redQuantity <= 0) {
-            System.out.println("Quantity should be greater than 0.");
-            return;
-        }
-        if (redQuantity > existing.getQuantity()) {
-            System.out.println("Not enough stock. Available: " + existing.getQuantity());
-            return;
-        }
-        ProductDAOImpl.reduceProduct(id, redQuantity);
     }
 
-    private static void searchProductAvailability() throws SQLException {
-        sc.nextLine();
-        System.out.print("Enter name of the product to check availability : ");
-        String productName = sc.nextLine().trim();
-
-        if (productName.isEmpty()) {
-            System.out.println("Product name cannot be empty.");
-            return;
-        }
-
+    public void filterByPriceRange() {
         try {
-            Product product = dao.searchByName(productName);
-            if (product == null) {
-                System.out.println("Product not found in the inventory.");
+            System.out.print("💲 Enter minimum price: ");
+            double minPrice = Double.parseDouble(sc.nextLine());
+            System.out.print("💲 Enter maximum price: ");
+            double maxPrice = Double.parseDouble(sc.nextLine());
+
+            if (minPrice < 0 || maxPrice < 0) {
+                System.out.println("❌ Price cannot be negative.");
                 return;
             }
-            System.out.println("Match Found.....!!");
-            System.out.println("Available Quantity : " + product.getQuantity());
-        } catch (ProductNotFoundException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-
-    private static void allAvailableProducts() throws SQLException {
-        List<Product> products = ProductDAOImpl.getAllProducts();
-        if (products.isEmpty()) {
-            System.out.println("There are no products in inventory.");
-            return;
-        }
-        CSVHelper.printProductsTable(products);
-    }
-
-    private static void getLowestStockProducts() throws SQLException {
-        int minValue;
-        try {
-            System.out.print("Enter minimum stock threshold: ");
-            minValue = sc.nextInt();
-        } catch (InputMismatchException e) {
-            System.out.println("Invalid input.");
-            sc.nextLine();
-            return;
-        }
-
-        List<Product> lowStockProducts = LowStockProducts(minValue);
-        if (lowStockProducts.isEmpty()) {
-            System.out.println("No products are low on stock.");
-        } else {
-            System.out.println("Low Stock Products:");
-            CSVHelper.printProductsTable(lowStockProducts);
-        }
-    }
-
-    private static void searchProductsWithinPriceRange() throws SQLException {
-        double startingPrice;
-        try{
-            System.out.println("Enter a StartingPrice : ");
-            startingPrice = sc.nextDouble();
-        }catch(InputMismatchException e){
-            System.out.println("Please enter a valid price.");
-            return;
-        }
-
-        double endingPrice;
-        try{
-            System.out.println("Enter a EndingPrice : ");
-            endingPrice = sc.nextDouble();
-        }catch(InputMismatchException e){
-            System.out.println("Please enter a valid price.");
-            return;
-        }
-
-        List<Product> products = ProductDAOImpl.getAllProducts();
-        if (products.isEmpty()) {
-            System.out.println("There are no products in inventory.");
-            return;
-        }
-
-        List<Product> result = new ArrayList<>();
-        for(Product p : products){
-            if(p.getPrice() >= startingPrice && p.getPrice() <= endingPrice){
-                result.add(p);
+            if (minPrice > maxPrice) {
+                System.out.println("⚠️ Minimum price cannot be greater than maximum price.");
+                return;
             }
-        }
 
-        if (result.isEmpty()) {
-            System.out.println("No products found in this price range.");
-        } else {
-            CSVHelper.printProductsTable(result);
+            List<Product> allProducts = dao.getAllProducts();
+            List<Product> filteredProducts = new ArrayList<>();
+            for (Product p : allProducts) {
+                if (p.getPrice() >= minPrice && p.getPrice() <= maxPrice) filteredProducts.add(p);
+            }
+
+            if (filteredProducts.isEmpty()) System.out.println("⚠️ No products found in this price range.");
+            else {
+                System.out.printf("%-5s %-15s %-15s %-10s %-10s%n", "ID", "Name", "Category", "Quantity", "Price");
+                System.out.println("------------------------------------------------------");
+                filteredProducts.forEach(p ->
+                        System.out.printf("%-5s %-15s %-15s %-10s %-10.2f%n",
+                                p.getId(), p.getName(), p.getCategory(), p.getQuantity(), p.getPrice()));
+            }
+
+        } catch (NumberFormatException e) {
+            System.out.println("⚠️ Invalid input! Please enter valid numbers for price.");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private static void printMenu() {
-        System.out.println("\nInventory Management System......By Raevanth !!");
-        System.out.println("\nSelect Operations :");
-        System.out.println("1. Add Product.");
-        System.out.println("2. Remove Product.");
-        System.out.println("3. Add Quantity.");
-        System.out.println("4. Reduce Quantity.");
-        System.out.println("5. Show All Available Products.");
-        System.out.println("6. Get All Lowest Stock Products.");
-        System.out.println("7. Search Product Availability.");
-        System.out.println("8. Search Product By Price Range.");
-        System.out.println("9. Exit From The Menu.");
+    public void displayAll() {
+        try {
+            List<Product> products = dao.getAllProducts();
+            if (products.isEmpty()) {
+                System.out.println("⚠️ No products found.");
+                return;
+            }
+            System.out.printf("%-5s %-15s %-15s %-10s %-10s%n", "ID", "Name", "Category", "Quantity", "Price");
+            System.out.println("------------------------------------------------------");
+            products.forEach(p ->
+                    System.out.printf("%-5s %-15s %-15s %-10s %-10.2f%n",
+                            p.getId(), p.getName(), p.getCategory(), p.getQuantity(), p.getPrice()));
+        } catch (Exception e) {
+            System.out.println("❌ Error while fetching products: " + e.getMessage());
+        }
+    }
+
+    public void generateReport() throws IOException {
+        System.out.print("🆔 Enter ID: ");
+        int id = Integer.parseInt(sc.nextLine());
+        System.out.print("📦 Enter Name: ");
+        String name = sc.nextLine();
+        System.out.print("🏷️ Enter Category: ");
+        String category = sc.nextLine();
+        System.out.print("🔢 Enter Quantity: ");
+        int quantity = Integer.parseInt(sc.nextLine());
+        System.out.print("💰 Enter Price: ");
+        double price = Double.parseDouble(sc.nextLine());
+
+        Product p = new Product(id, name, category, quantity, price);
+        List<Product> list = new ArrayList<>();
+        list.add(p);
+        CSVHelper.saveProducts(list);
+        System.out.println("📄 Report generated successfully!");
+    }
+
+    public void addUser() {
+        try {
+            System.out.print("👤 Enter Username: ");
+            String username = sc.nextLine().trim();
+            if (username.isEmpty()) throw new InvalidQuantityException("❌ Username cannot be empty");
+
+            System.out.print("🔐 Enter Password: ");
+            String password = sc.nextLine().trim();
+            if (password.isEmpty()) throw new InvalidQuantityException("❌ Password cannot be empty");
+
+            System.out.print("🛡️ Enter Role: ");
+            String role = sc.nextLine().trim();
+            if (role.isEmpty()) throw new InvalidQuantityException("❌ Role cannot be empty");
+            role = role.toUpperCase();
+
+            User user = new User();
+            user.setUsername(username);
+            user.setPassword(password);
+            user.setRole(role);
+
+            userDao.addUser(user);
+            System.out.println("✅ User added successfully!");
+
+        } catch (InvalidQuantityException e) {
+            System.out.println(e.getMessage());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void getUserByUsername() {
+        try {
+            System.out.print("🔍 Enter username to search: ");
+            String username = sc.nextLine().trim();
+            if (username.isEmpty()) throw new InvalidQuantityException("❌ Username cannot be empty");
+
+            User fetched = userDao.getUserByUsername(username);
+            if (fetched != null) {
+                System.out.println("✅ User Found: " + fetched.getUsername() + "\n🛡️ Role: " + fetched.getRole());
+            } else {
+                System.out.println("⚠️ User Not Found!");
+            }
+
+        } catch (InvalidQuantityException e) {
+            System.out.println(e.getMessage());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void removeUser() {
+        try {
+            System.out.print("🗑️ Enter username to remove: ");
+            String username = sc.nextLine().trim();
+            if (username.isEmpty()) {
+                System.out.println("❌ Username cannot be empty.");
+                return;
+            }
+
+            User existingUser = userDao.getUserByUsername(username);
+            if (existingUser == null) {
+                System.out.println("⚠️ User not found: " + username);
+                return;
+            }
+
+            boolean deleted = userDao.deleteUser(username);
+            if (deleted) System.out.println("✅ User '" + username + "' removed successfully!");
+            else System.out.println("⚠️ Failed to delete user.");
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
