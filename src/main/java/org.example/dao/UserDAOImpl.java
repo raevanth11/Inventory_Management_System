@@ -8,7 +8,7 @@ import java.sql.*;
 public class UserDAOImpl implements UserDao {
 
     private final Connection conn;
-    public UserDAOImpl(Connection conn) throws SQLException {
+    public UserDAOImpl() throws SQLException {
         this.conn = DBConnection.getConnection();
     }
     @Override

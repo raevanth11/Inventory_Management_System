@@ -25,8 +25,6 @@ public class InventoryAdmin {
         }
     }
 
-    // ===== PRODUCT METHODS =====
-
     public void addProduct() {
         try {
             System.out.print("🆔 Enter ID: ");

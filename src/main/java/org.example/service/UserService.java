@@ -11,7 +11,7 @@ public class UserService {
 
     public UserService() throws SQLException {
         Connection conn = null;
-        this.userDAO = new UserDAOImpl(null);
+        this.userDAO = new UserDAOImpl();
     }
     public boolean register(String username, String password, String role) throws SQLException {
         try {

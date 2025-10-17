@@ -89,6 +89,18 @@ public class ProductDAOImpl {
             System.out.println("❌ Product with ID " + id + " not found.");
         }
     }
+    public boolean updateProduct(Product product) throws SQLException {
+        String sql = "UPDATE products SET name=?, category=?, quantity=?, price=? WHERE id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, product.getName());
+            ps.setString(2, product.getCategory());
+            ps.setInt(3, product.getQuantity());
+            ps.setDouble(4, product.getPrice());
+            ps.setInt(5, product.getId());
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        }
+    }
 
     public static void reduceProduct(int id, int reduceBy) throws SQLException {
         String selectSql = "SELECT quantity FROM products WHERE id = ?";
